@@ -25,6 +25,7 @@
 from bs4 import BeautifulSoup as bs
 import requests
 import os
+import itertools
 
 
 #Class Codeforces
@@ -43,7 +44,7 @@ class Codeforces:
         self.url = 'https://codeforces.com'
         self.MAX_TRIES = 5
         self.site = 'Codeforces'
-        self.contest_code = contest_code
+        self.contest_code = "".join(itertools.takewhile(str.isdigit, contest_code))
         self.codeforces_folder = None
         #   Check whether necessary folder structure is in place or not
         #   So that the test files could be saved there
