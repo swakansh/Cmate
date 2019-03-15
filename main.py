@@ -1,7 +1,8 @@
 from cmate_class import *
-from execution import *
+# from execution import *
 import configparser
 import argparse
+import os
 
 
 """
@@ -25,8 +26,9 @@ def main():
     """
     parser.add_argument("-d", "--default", help = "Sets the default site. cf for codeforces. cc for codechef. he for hackerearth. hr for hackerank. Once specified, no need to specify site with -s option again.")
     parser.add_argument("-s", "--site", help = "Sets the site for one time. cf for codeforces. cc for codechef. he for hackerearth. hr for hackerank.")
-    parser.add_argument("-a", "-answer", help = "Provide a solution file to check correctness for.")
-    parser.add_argument("problem", help = "Specify the problem code. Like 1111A, 1112B or XDCOMP etc")
+    parser.add_argument("-a", "--answer", help = "Provide a solution file to check correctness for.")
+    parser.add_argument("-c", "--contest", help = "Use this option to provide the contest code. Like 1111, JAN19A.")
+    parser.add_argument("problem", help = "Specify the problem code. Like A, B or XDCOMP etc")
 
     args = parser.parse_args()
     site_object = None
@@ -62,9 +64,12 @@ def main():
         Found the site.
     """
     if site == "cf":
-        site_object = Codeforces(args.problem)
+        if not args.contest:
+            print("You need to provide the contest code for the problem. Like 1111, 11132 the one that is present in the link.")
+            exit(0)
+        site_object = CODEFORCES(args.contest)
     elif site == "cc":
-        pass
+        site_object = CODECHEF(args.contest)
     elif site == "he":
         pass
     elif site == "hr":

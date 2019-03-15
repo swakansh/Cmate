@@ -26,10 +26,46 @@ from bs4 import BeautifulSoup as bs
 import requests
 import os
 import itertools
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+
+class SITE:
+    """
+        Base class to support reusability of modules that work on same functionality.
+        Basically implementing abstraction
+    """
+    def __init__(self):
+        self.MAX_TRIES = 5
+    
+    def get_page_data(self, problem_code):
+        '''
+            Description:
+                Given the problem code like 1111C which means C problem from contest 1111
+                this function is responsible for fetching html page from appropriate 
+                problem url.
+            I/O: 
+                problem_code(string)
+            O/P:
+                html_page_data
+        '''
+        page_url = self.construct_problem_url(problem_code)
+        # print(page_url)
+        try:
+            for tries in range(self.MAX_TRIES):
+                page_data = requests.get(page_url)
+                if page_data.status_code == 200:
+                    print("Fetched Page data")
+                    return page_data
+        except:
+            print("Could not connect to the {} site. Try again later.".format(self.site))
+            exit(0)
+
+
+
 
 
 #Class Codeforces
-class Codeforces:
+class CODEFORCES(SITE):
     '''
     Description:
         This class will contain all the functions
@@ -41,17 +77,17 @@ class Codeforces:
             Description:
                 Initialize all the properties of Codeforces Class
         '''
-        self.url = 'https://codeforces.com'
+        self.url = 'https://www.codeforces.com'
         self.MAX_TRIES = 5
         self.site = 'Codeforces'
-        self.contest_code = "".join(itertools.takewhile(str.isdigit, contest_code))
-        self.codeforces_folder = None
+        self.contest_code = contest_code
+        self.folder = None
         #   Check whether necessary folder structure is in place or not
         #   So that the test files could be saved there
         home_dir = os.path.expanduser("~")
-        self.codeforces_folder = os.path.join(home_dir, ".cmate", "Codeforces", self.contest_code)
-        if(not os.path.exists(self.codeforces_folder)):
-            os.makedirs(self.codeforces_folder)
+        self.folder = (os.path.join(home_dir, ".cmate", self.site, self.contest_code if self.contest_code else os.path.join(home_dir, ".cmate", "Codechef")))
+        if(not os.path.exists(self.folder)):
+            os.makedirs(self.folder)
 
 
     def construct_problem_url(self, problem_code):
@@ -71,28 +107,6 @@ class Codeforces:
             exit(0)
         return None
 
-    def get_page_data(self, problem_code):
-        '''
-            Description:
-                Given the problem code like 1111C which means C problem from contest 1111
-                this function is responsible for fetching html page from appropriate 
-                problem url.
-            I/O: 
-                problem_code(string)
-            O/P:
-                html_page_data
-        '''
-        page_url = self.construct_problem_url(problem_code)
-        
-        for tries in range(self.MAX_TRIES):
-            page_data = requests.get(page_url)
-            if page_data.status_code == 200:
-                print("Fetched Page data")
-                return page_data
-        
-        print("Could not connect to the {} site. Try again sometime later.".format(self.site))
-        exit(0)
-
     def get_test_cases(self, problem_code):
         '''
             Description:
@@ -108,14 +122,12 @@ class Codeforces:
         soup = bs(page_data.text, features = 'html.parser')
         tests = soup.findAll("div", {"class" : "sample-tests"})
         if len(tests) > 0:
-            
             #There are some inputs and output files to be considered    
-            test_case_folder = os.path.join(self.codeforces_folder, problem_code)
+            test_case_folder = os.path.join(self.folder, problem_code)
             if(not os.path.exists(test_case_folder)):
                 os.makedirs(test_case_folder)
             inputs = tests[0].findAll("div" , {"class" : "input"})
             outputs = tests[0].findAll("div" , {"class" : "output"})
-
 
             for case in range(len(inputs)):
                 data = inputs[case].find('pre').text.strip()
@@ -126,6 +138,93 @@ class Codeforces:
 
             for case in range(len(outputs)):
                 data = outputs[case].find('pre').text.strip()
+                filename = ("output_%s" % (case + 1))
+                file_ptr = open(os.path.join(test_case_folder,filename), "w")
+                file_ptr.write(data)
+                file_ptr.close()
+        else:
+            print("No test cases associated with this problem code.")
+
+class CODECHEF(SITE):
+    """
+        Description:
+            This class encapsulates all the properties of the Codechef class
+            and how things need to be done for codechef website
+    """
+    
+    def __init__(self, contest_code):
+        """
+            Description:
+                Initialise properties related to the Codechef class
+        """
+        self.url = 'https://www.codechef.com'
+        self.MAX_TRIES = 5
+        self.site = 'Codechef'
+        self.contest_code = contest_code
+        self.folder = None
+        #   Check whether necessary folder structure is in place or not
+        #   So that the test files could be saved there
+        home_dir = os.path.expanduser("~")
+        self.folder = (os.path.join(home_dir, ".cmate", self.site, self.contest_code if self.contest_code else os.path.join(home_dir, ".cmate", "Codechef")))
+        if(not os.path.exists(self.folder)):
+            os.makedirs(self.folder)
+
+    def construct_problem_url(self, problem_code):
+        if problem_code:
+            if self.contest_code:
+                return (self.url + "/" + self.contest_code + '/problems/' + problem_code)
+            else:
+                return (self.url + "/problems/" + problem_code)
+        else:
+            print("Could not construct page url.")
+            exit(0)
+        return None
+    
+    
+    def get_test_cases(self, problem_code):
+
+        """
+            -----------------------Buggy Implementation----------------------
+
+            
+            Codechef site has data in a variety of format, so need to work on 
+            figuring out a way to get test cases from codeforces site.
+        """
+        page_data = self.get_page_data(problem_code)
+
+        soup = bs(page_data.text, features = 'html.parser')
+        #Get all the pre tags in the document
+        pre_tags = soup.find_all("pre")
+        print(pre_tags)
+        test_pre_content = []
+        # For each pre tag check whether it can be a candidate for test case,
+        # It is a candidate for a test case if it starts with Input
+        for each_pre_tag in pre_tags:
+            if each_pre_tag.text.startswith("input") or each_pre_tag.text.startswith("Input"):
+                test_pre_content.append(each_pre_tag.text)
+        
+        # For each text inside those pre tags we now need to find the input and output cases 
+        # Splitting first on string input and then on string output
+        test_cases = []
+        for each_test_pre in test_pre_content:
+            level_one = each_test_pre.split("Input")
+            for each_level_one_pre in level_one:
+                (inp, out) = each_level_one_pre.split("Output").unpack()
+                test_cases.append((inp, out))
+
+        if len(test_cases) > 0:
+            #There are some inputs and output to be considered    
+            test_case_folder = os.path.join(self.folder, problem_code)
+            if(not os.path.exists(test_case_folder)):
+                os.makedirs(test_case_folder)
+            
+            for case in range(len(test_cases)):
+                data = test_cases[case][0].strip()
+                filename = ("input_%s" % (case + 1))
+                file_ptr = open(os.path.join(test_case_folder,filename), "w")
+                file_ptr.write(data)
+                file_ptr.close()
+                data = test_cases[case][1].strip()
                 filename = ("output_%s" % (case + 1))
                 file_ptr = open(os.path.join(test_case_folder,filename), "w")
                 file_ptr.write(data)
