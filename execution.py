@@ -2,6 +2,7 @@ from colorama import init, Fore, Style, Back
 import subprocess
 import argparse
 import os
+import shutil
 
 class TEST:
     """
@@ -174,8 +175,7 @@ class LANGUAGE_EXEC:
             print("*" * 30)
         print(Style.BRIGHT + Fore.GREEN + "PASSED: " + str(success_tests) + "/" + str(total_tests))
         print(Style.BRIGHT + Fore.GREEN + "Success percentage: " + str(success_tests / total_tests * 100))
-
-
+    
 class LANG_CPLUS(LANGUAGE_EXEC):
     """
         Class to support execution of c++ files
@@ -368,7 +368,7 @@ def main():
 
     args = parser.parse_args()
 
-    lang = LANG_PYTHON()
+    lang = LANG_CPLUS()
     lang.test_file(args.tests, args.file)
 
 if __name__ == "__main__":
