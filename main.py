@@ -28,20 +28,24 @@ def main():
                         help = "Sets the default site. cf for codeforces. cc for codechef. he for hackerearth. hr for hackerank. Once specified, no need to specify site with -s option again.")
     parser.add_argument("-s", 
                         "--site", 
-                        help = "Sets the site for one time. cf for codeforces. cc for codechef. hr for hackerank.")
+                        help = "Sets the site for one time. cf for Codeforces. cc for Codechef. hr for Hackerank. ac for Atcoder. Use as -s site")
     parser.add_argument("-a", 
                         "--answer", 
-                        help = "Provide a solution file to check correctness for.")
+                        help = "Provide a solution file to check correctness for. Use as -a answer")
+    parser.add_argument("-b",
+                        "--bulk",
+                        action = "store_true",
+                        help = "Fetch all the test cases for the given contest. Use as -b")
     parser.add_argument("-c", 
                         "--contest", 
-                        help = "Use this option to provide the contest code. Like 1111, JAN19A.")
+                        help = "Use this option to provide the contest code. Like 1111, JAN19A. Use as -c contest")
     parser.add_argument("-p",
                         "--problem", 
-                        help = "Specify the problem code. Like A, B or XDCOMP etc")
+                        help = "Specify the problem code. Like A, B or XDCOMP etc. Use as -p problem")
     parser.add_argument("-z",
                         "--zero",
                         action = "store_true",
-                        help = "Use this option to free up the space occupied by the test input and output files.")
+                        help = "Use this option to free up the space occupied by the test input and output files. Use as -z")
     
     args = parser.parse_args()
 
@@ -49,7 +53,7 @@ def main():
     home_dir = os.path.expanduser('~')
     CODEFORCES.folder = (os.path.join(home_dir, ".cmate", CODEFORCES.site))
     CODECHEF.folder = (os.path.join(home_dir, ".cmate", CODECHEF.site))
-         
+    ATCODER.folder = (os.path.join(home_dir, ".cmate", ATCODER.site))
     site_object = None
     site = None
 
@@ -60,6 +64,7 @@ def main():
         print("Deleting all the previous input and output files.")
         CODEFORCES.clean_structure(CODEFORCES.folder)
         CODECHEF.clean_structure(CODECHEF.folder)
+        ATCODER.clean_structure(ATCODER.folder)
         print("Done...")
     
     
@@ -87,9 +92,7 @@ def main():
             config.read(config_file_name)
             site = config['DEFAULT']['site']
         except:
-            print("You need to provide the site to use. Use either -s or -d option.")
-            exit(0)
-    
+            pass
     """
         Found the site.
     """
@@ -100,18 +103,27 @@ def main():
         site_object = CODEFORCES(args.contest)
     elif site == "cc":
         site_object = CODECHEF(args.contest)
+    elif site == "ac":
+        if not args.contest:
+            print("You need to provide the contest code for the problem. Like arc101, ar102 the one that is present in the link.")
+            exit(0)
+        site_object = ATCODER(args.contest)
     elif site == "hr":
         pass
-
+    
     """
         If site and problem code is available, we can download the test cases now.
     """
     if site_object and args.problem:
         site_object.get_test_cases(args.problem)
+    elif site_object and args.bulk:
+        site_object.bulk_request()
     elif site_object:
-        print("Error: Please pass a problem code to proceed further")
+        print("Error: Pass the problem code to proceed further. Use -p option.")
+        exit(0)
 
-
+    
 
 if __name__ == "__main__":
+    init(autoreset=True)
     main()

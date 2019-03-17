@@ -12,7 +12,7 @@
 
     Enough talking let's start implementing!!
 
-    Currently developing for Codeforces, Codechef
+    Currently developing for Codeforces, Codechef, AtCoder
     
     Will extend for :
     Hackerrank
@@ -26,6 +26,7 @@ try:
     import re
     import itertools
     import shutil
+    from colorama import init, Fore, Style, Back
 except:
     print("Install necessary dependencies and then try again.")
     exit(0)
@@ -38,19 +39,22 @@ class SITE:
     def __init__(self):
         pass
     
-    def get_page_data(self, problem_code):
+    def get_contest_url(self):
+        pass
+
+    def get_problem_url(self, problem_code):
+        pass
+
+    def get_page_data(self, page_url):
         '''
             Description:
-                Given the problem code like C this function is responsible 
-                for fetching html page from appropriate 
-                problem url.
+                Given the page url this function is responsible 
+                for fetching html page from appropriate it.
             I/O: 
-                problem_code(string)
+                problem_url(string)
             O/P:
                 html_page_data
         '''
-        page_url = self.construct_problem_url(problem_code)
-        # print(page_url)
         try:
             for tries in range(self.MAX_TRIES):
                 page_data = requests.get(page_url)
@@ -60,6 +64,9 @@ class SITE:
         except:
             print("Could not connect to the {} site. Try again later.".format(self.site))
             exit(0)
+
+    def bulk_request(self):
+        pass
 
     @staticmethod
     def clean_structure(dirc):
@@ -99,8 +106,18 @@ class CODEFORCES(SITE):
         if(not os.path.exists(self.cp_dir)):
             os.makedirs(self.cp_dir)
 
+    def get_contest_url(self):
+        """
+            Description:
+                Return the apt contest url.
+            I/P:
+                None
+            O/P:
+                Contest url
+        """
+        return self.url + '/contest/' + self.contest_code
 
-    def construct_problem_url(self, problem_code):
+    def get_problem_url(self, problem_code):
         '''
             Description:
                 Given the problem code like 1111C which means problem C from contest 1111
@@ -128,7 +145,8 @@ class CODEFORCES(SITE):
             O/P:
                 test cases file
         '''
-        page_data = self.get_page_data(problem_code)
+        page_url = self.get_problem_url(problem_code)
+        page_data = self.get_page_data(page_url)
         soup = bs(page_data.text, features = 'html.parser')
         tests = soup.findAll("div", {"class" : "sample-tests"})
         if len(tests) > 0:
@@ -153,6 +171,31 @@ class CODEFORCES(SITE):
 
         else:
             print("No test cases associated with this problem code.")
+        print("Parsing of test cases done...")
+
+    def bulk_request(self):
+        try:
+            contest_url = self.get_contest_url()
+            data = self.get_page_data(contest_url)
+            soup = bs(data.text, "html.parser")
+            problem_rows = soup.find("table", class_= "problems").find_all("tr")
+            problem_codes = []
+            for each_row in problem_rows:
+                a_tags = each_row.find_all('a')
+                if len(a_tags) and a_tags[0]['href']:
+                    problem_codes.append(a_tags[0]['href'].split('/')[-1])
+            
+            for each in problem_codes:
+                print(Style.BRIGHT + ("*" * 30))
+                print(Style.BRIGHT + "Getting test case for the problem : {}{} ....".format(self.contest_code, each))
+                self.get_test_cases(each)
+                print(Style.BRIGHT + Fore.GREEN + "Done!")
+                print(Style.BRIGHT + ("*" * 30))
+            
+            print(Style.BRIGHT + Fore.GREEN + "All problem's test cases fetched.")
+        except:
+            print("Error: Issues encountered while fetching test cases. Please try again later.")
+            exit(0)
 
 class CODECHEF(SITE):
     """
@@ -163,7 +206,7 @@ class CODECHEF(SITE):
     folder = None
     site = "Codechef"
     MAX_TRIES = 5
-    url = 'https://www.codechef.com/api'
+    url = 'https://www.codechef.com/'
     def __init__(self, contest_code):
         """
             Description:
@@ -177,9 +220,9 @@ class CODECHEF(SITE):
             os.makedirs(self.cp_dir)
 
 
-    def construct_problem_url(self, problem_code):
+    def get_problem_url(self, problem_code):
         if problem_code:
-            return (self.url + "/contests/" + self.contest_code + '/problems/' + problem_code)
+            return (self.url + "api/contests/" + self.contest_code + '/problems/' + problem_code)
         else:
             print("Could not construct page url.")
             exit(0)
@@ -192,7 +235,8 @@ class CODECHEF(SITE):
             This function parses test cases from most of the formats.
         """
         try:
-            response = self.get_page_data(problem_code)
+            page_url = self.get_problem_url(problem_code)
+            response = self.get_page_data(page_url)
             page_data = response.json()
             page_data = page_data['body']
             data_list = page_data.split("```")
@@ -252,7 +296,75 @@ class CODECHEF(SITE):
                         file_ptr.write(data)
             else:
                 print("No test cases available for this problem.")        
-        
+
         except (KeyError, ValueError):
             print("Error: Incorrect data received.")
             exit(0)
+
+        print("Parsing of test cases done...")
+
+
+class ATCODER(SITE):
+    """
+        Class to support features and methods to support parsing through Atcoder website
+    """
+    folder = None
+    site = "AtCoder"
+    MAX_TRIES = 5
+    url = 'https://atcoder.jp/contests/'
+    def __init__(self, contest_code):
+        """
+            Description:
+                Initialise properties related to the Atcoder class
+        """
+        self.contest_code = contest_code
+        #   Check whether necessary folder structure is in place or not
+        #   So that the test files could be saved there
+        self.cp_dir = (os.path.join(ATCODER.folder, self.contest_code))
+        if(not os.path.exists(self.cp_dir)):
+            os.makedirs(self.cp_dir)
+
+    def get_problem_url(self, problem_code):
+        if problem_code:
+            return (self.url + self.contest_code + '/tasks/' + problem_code)
+        else:
+            print("Error: Could not construct page url.")
+            exit(0)
+        return None
+
+    
+    def get_test_cases(self, problem_code):
+        page_url = self.get_problem_url(problem_code)
+        page_data = self.get_page_data(page_url)
+        soup = bs(page_data.text, features = 'html.parser')
+        tests = soup.find_all("pre")
+        current = 0
+        pre_size = len(tests)
+        test_cases = []
+        while(current < pre_size):
+            cur_pre = tests[current].find_all('var')
+            if(cur_pre):
+                #ignore that pre which is input style
+                current += 1
+            else:
+                #otherwise the current one and the next one acts as input and output
+                test_cases.append((tests[current].text.strip(), tests[current + 1].text.strip()))
+                current += 2
+        
+        if len(test_cases):
+            #Creating input and output files for each test case and storing them in respective folder
+            test_case_folder = os.path.join(self.cp_dir, problem_code)
+            if(not os.path.exists(test_case_folder)):
+                os.makedirs(test_case_folder)
+            for case in range(len(test_cases)):
+                data = test_cases[case][0]
+                filename = ("input_%s" % (case + 1))
+                with open(os.path.join(test_case_folder,filename), "w") as file_ptr:
+                    file_ptr.write(data)
+                data = test_cases[case][1]
+                filename = ("output_%s" % (case + 1))
+                with open(os.path.join(test_case_folder,filename), "w") as file_ptr:
+                    file_ptr.write(data)
+        else:
+            print("No test cases associated with this problem code.")
+        print("Parsing of test cases done...")
