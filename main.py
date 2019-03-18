@@ -54,6 +54,7 @@ def main():
     CODEFORCES.folder = (os.path.join(home_dir, ".cmate", CODEFORCES.site))
     CODECHEF.folder = (os.path.join(home_dir, ".cmate", CODECHEF.site))
     ATCODER.folder = (os.path.join(home_dir, ".cmate", ATCODER.site))
+    HACKERRANK.folder = (os.path.join(home_dir,  ".cmate", HACKERRANK.site))
     site_object = None
     site = None
 
@@ -65,6 +66,7 @@ def main():
         CODEFORCES.clean_structure(CODEFORCES.folder)
         CODECHEF.clean_structure(CODECHEF.folder)
         ATCODER.clean_structure(ATCODER.folder)
+        HACKERRANK.clean_structure(HACKERRANK.folder)
         print("Done...")
     
     
@@ -109,7 +111,7 @@ def main():
             exit(0)
         site_object = ATCODER(args.contest)
     elif site == "hr":
-        pass
+        site_object = HACKERRANK(args.contest)
     
     """
         If site and problem code is available, we can download the test cases now.
@@ -122,7 +124,7 @@ def main():
         print("Error: Pass the problem code to proceed further. Use -p option.")
         exit(0)
 
-    
+
 
 if __name__ == "__main__":
     init(autoreset=True)

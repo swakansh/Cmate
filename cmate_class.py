@@ -52,9 +52,10 @@ class SITE:
             O/P:
                 html_page_data
         '''
+        headers = {'User-Agent' : "Mozilla/5.0"}
         try:
             for tries in range(self.MAX_TRIES):
-                page_data = requests.get(page_url)
+                page_data = requests.get(page_url, headers = headers)
                 if page_data.status_code == 200:
                     print("Fetched Page to parse test cases")
                     return page_data
@@ -149,7 +150,7 @@ class CODEFORCES(SITE):
         if(not os.path.exists(test_case_folder)):
             os.makedirs(test_case_folder)
         else:
-            print("Test cases for this problem already present.")
+            print("Test cases for {} problem already present.".format(problem_code))
             return    
         page_url = self.get_problem_url(problem_code)
         page_data = self.get_page_data(page_url)
@@ -247,7 +248,7 @@ class CODECHEF(SITE):
         if(not os.path.exists(test_case_folder)):
             os.makedirs(test_case_folder)
         else:
-            print("Test cases for this problem already present.")
+            print("Test cases for {} problem already present.".format(problem_code))
             return
         try:
             page_url = self.get_problem_url(problem_code)
@@ -339,7 +340,7 @@ class CODECHEF(SITE):
             print(Style.BRIGHT + Fore.GREEN + "All problem's test cases fetched.")
         except:
             print("Error: Issues encountered while fetching test cases. Please try again later.")
-
+            exit(0)
 
 class ATCODER(SITE):
     """
@@ -372,7 +373,7 @@ class ATCODER(SITE):
         if problem_code:
             return (self.url + self.contest_code + '/tasks/' + problem_code)
         else:
-            print("Error: Could not construct page url.")
+            print("Error: No problem code available. Please provide the problem code.")
             exit(0)
         return None
 
@@ -382,7 +383,7 @@ class ATCODER(SITE):
         if(not os.path.exists(test_case_folder)):
             os.makedirs(test_case_folder)
         else:
-            print("Test cases for this problem already present.")
+            print("Test cases for {} problem already present.".format(problem_code))
             return
         page_url = self.get_problem_url(problem_code)
         page_data = self.get_page_data(page_url)
@@ -438,4 +439,113 @@ class ATCODER(SITE):
             print(Style.BRIGHT + Fore.GREEN + "All problem's test cases fetched.")
         except:
             print("Error: Issues encountered while fetching test cases. Please try again later.")
+            exit(0) 
 
+
+
+class HACKERRANK(SITE):
+    """
+        Class to provide properties and methods for Hackerrank class
+    """
+    site = "Hackerrank"
+    url = "https://www.hackerrank.com"
+    MAX_TRIES = 5
+    folder = None
+    def __init__(self, contest_code):
+        """
+            Description:
+                Initialise properties related to the Hackerrank class
+        """
+        self.contest_code = contest_code
+        #   Check whether necessary folder structure is in place or not
+        #   So that the test files could be saved there
+        self.contest_code = (contest_code if contest_code else 'CHALLENGES')
+        self.cp_dir = os.path.join(HACKERRANK.folder, self.contest_code)
+        if(not os.path.exists(self.cp_dir)):
+            os.makedirs(self.cp_dir)
+
+    def get_problem_url(self, problem_code):
+        if problem_code:
+            if self.contest_code == "CHALLENGES":
+                return self.url + '/challenges/' + problem_code 
+            else:
+                return self.url + "/contests/" + self.contest_code + "/challenges/" + problem_code
+        else:
+            print("Error: No problem code available. Please provide the problem code.")
+            exit(0)
+        return None
+
+
+    def get_contest_url(self):
+        if self.contest_code != 'CHALLENGES':
+            return self.url + "/contests/" + self.contest_code + "/challenges"
+        else:
+            print("Error: No contest code available. Please provide the contest code.")
+            exit(0)
+
+    def get_test_cases(self, problem_code):
+        test_case_folder = os.path.join(self.cp_dir, problem_code)
+        if(not os.path.exists(test_case_folder)):
+            os.makedirs(test_case_folder)
+        else:
+            print("Test cases for {} problem already present.".format(problem_code))
+            return
+        try: 
+            page_url = self.get_problem_url(problem_code)
+            page_data = self.get_page_data(page_url)
+            soup = bs(page_data.text, features = "html.parser")
+            input_divs = soup.find_all("div", class_="challenge_sample_input")
+            output_divs = soup.find_all("div", class_="challenge_sample_output")
+            test_cases = []
+            for cur in range(len(input_divs)):
+                test_cases.append((input_divs[cur].find("pre").text.strip(), output_divs[cur].find("pre").text.strip()))
+            if len(test_cases):
+                for case in range(len(test_cases)):
+                    data = test_cases[case][0]
+                    filename = ("input_%s" % (case + 1))
+                    with open(os.path.join(test_case_folder,filename), "w") as file_ptr:
+                        file_ptr.write(data)
+                    data = test_cases[case][1]
+                    filename = ("output_%s" % (case + 1))
+                    with open(os.path.join(test_case_folder,filename), "w") as file_ptr:
+                        file_ptr.write(data)
+            else:
+                print("No test cases available for this problem.") 
+
+        except:
+            print("Error: Incorrect data received.")
+            exit(0)
+
+        print("Parsing of test cases done...")
+        
+
+    def bulk_request(self):
+        try:
+            print("Bulk request for all problems of the contest.")
+            contest_url = self.get_contest_url()
+            print(contest_url)
+            data = self.get_page_data(contest_url)
+            soup = bs(data.text, "html.parser")
+            print(soup)
+            problems = soup.find("div", class_="challenges-list")
+            print(problems)
+            problems_array = problems.find_all("h4", class_="challengecard-title")
+            print("FU")
+            print(problems)
+            problem_codes = []
+            for each in problems_array:
+                a_tag = each_row.find('a')
+                if a_tag and a_tags['href']:
+                    problem_codes.append(a_tag['href'].split('/')[-1])
+            
+            for each in problem_codes:
+                print(Style.BRIGHT + ("*" * 30))
+                print(Style.BRIGHT + "Getting test case for the problem : {} - {} ....".format(self.contest_code, each))
+                self.get_test_cases(each)
+                print(Style.BRIGHT + Fore.GREEN + "Done!")
+                print(Style.BRIGHT + ("*" * 30))
+            
+            print(Style.BRIGHT + Fore.GREEN + "All problem's test cases fetched.")
+        except:
+            print("Error: Issues encountered while fetching test cases. Please try again later.")
+            exit(0)
