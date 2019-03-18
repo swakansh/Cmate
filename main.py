@@ -63,10 +63,10 @@ def main():
     if args.zero:
         # we need to clean the directory structure
         print("Deleting all the previous input and output files.")
-        CODEFORCES.clean_structure(CODEFORCES.folder)
-        CODECHEF.clean_structure(CODECHEF.folder)
-        ATCODER.clean_structure(ATCODER.folder)
-        HACKERRANK.clean_structure(HACKERRANK.folder)
+        CODEFORCES.clean_dir(CODEFORCES.folder)
+        CODECHEF.clean_dir(CODECHEF.folder)
+        ATCODER.clean_dir(ATCODER.folder)
+        HACKERRANK.clean_dir(HACKERRANK.folder)
         print("Done...")
     
     

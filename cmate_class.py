@@ -52,7 +52,7 @@ class SITE:
             O/P:
                 html_page_data
         '''
-        headers = {'User-Agent' : "Mozilla/5.0"}
+        headers = {'User-Agent' : "Chrome/60.0.3112.90"}
         try:
             for tries in range(self.MAX_TRIES):
                 page_data = requests.get(page_url, headers = headers)
@@ -67,7 +67,7 @@ class SITE:
         pass
 
     @staticmethod
-    def clean_structure(dirc):
+    def clean_dir(dirc):
         if dirc:
             for cur_file in os.listdir(dirc):
                 file_path = os.path.join(dirc, cur_file)
@@ -313,7 +313,7 @@ class CODECHEF(SITE):
                 print("No test cases available for this problem.")        
 
         except:
-            print("Error: Incorrect data received.")
+            print("Error: Incorrect data received. Please try again later.")
             exit(0)
 
         print("Parsing of test cases done...")
@@ -448,7 +448,7 @@ class HACKERRANK(SITE):
         Class to provide properties and methods for Hackerrank class
     """
     site = "Hackerrank"
-    url = "https://www.hackerrank.com"
+    url = "https://www.hackerrank.com/"
     MAX_TRIES = 5
     folder = None
     def __init__(self, contest_code):
@@ -469,19 +469,11 @@ class HACKERRANK(SITE):
             if self.contest_code == "CHALLENGES":
                 return self.url + '/challenges/' + problem_code 
             else:
-                return self.url + "/contests/" + self.contest_code + "/challenges/" + problem_code
+                return self.url + "rest/contests/" + self.contest_code + "/challenges/" + problem_code
         else:
             print("Error: No problem code available. Please provide the problem code.")
             exit(0)
         return None
-
-
-    def get_contest_url(self):
-        if self.contest_code != 'CHALLENGES':
-            return self.url + "/contests/" + self.contest_code + "/challenges"
-        else:
-            print("Error: No contest code available. Please provide the contest code.")
-            exit(0)
 
     def get_test_cases(self, problem_code):
         test_case_folder = os.path.join(self.cp_dir, problem_code)
@@ -493,7 +485,11 @@ class HACKERRANK(SITE):
         try: 
             page_url = self.get_problem_url(problem_code)
             page_data = self.get_page_data(page_url)
-            soup = bs(page_data.text, features = "html.parser")
+            soup = None
+            if self.contest_code == 'CHALLENGES':
+                soup = bs(page_data.text, features = "html.parser")
+            else:
+                soup = bs(page_data.json()['model']['body_html'], features = "html.parser")
             input_divs = soup.find_all("div", class_="challenge_sample_input")
             output_divs = soup.find_all("div", class_="challenge_sample_output")
             test_cases = []
@@ -513,39 +509,8 @@ class HACKERRANK(SITE):
                 print("No test cases available for this problem.") 
 
         except:
-            print("Error: Incorrect data received.")
+            print("Error: Incorrect data received. Please try again later.")
             exit(0)
 
         print("Parsing of test cases done...")
         
-
-    def bulk_request(self):
-        try:
-            print("Bulk request for all problems of the contest.")
-            contest_url = self.get_contest_url()
-            print(contest_url)
-            data = self.get_page_data(contest_url)
-            soup = bs(data.text, "html.parser")
-            print(soup)
-            problems = soup.find("div", class_="challenges-list")
-            print(problems)
-            problems_array = problems.find_all("h4", class_="challengecard-title")
-            print("FU")
-            print(problems)
-            problem_codes = []
-            for each in problems_array:
-                a_tag = each_row.find('a')
-                if a_tag and a_tags['href']:
-                    problem_codes.append(a_tag['href'].split('/')[-1])
-            
-            for each in problem_codes:
-                print(Style.BRIGHT + ("*" * 30))
-                print(Style.BRIGHT + "Getting test case for the problem : {} - {} ....".format(self.contest_code, each))
-                self.get_test_cases(each)
-                print(Style.BRIGHT + Fore.GREEN + "Done!")
-                print(Style.BRIGHT + ("*" * 30))
-            
-            print(Style.BRIGHT + Fore.GREEN + "All problem's test cases fetched.")
-        except:
-            print("Error: Issues encountered while fetching test cases. Please try again later.")
-            exit(0)
